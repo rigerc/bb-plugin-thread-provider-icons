@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-thread-provider-icons",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "description": "Draws each thread's provider logo before its title in the BB sidebar, so you can see at a glance which agent owns which thread.",
   "license": "MIT",
   "author": "Braedon Saunders",
@@ -29,7 +29,7 @@
     "LICENSE"
   ],
   "engines": {
-    "bb": ">=0.39",
+    "bb": ">=0.42",
     "bbPluginSdk": ">=0.4.8"
   },
   "bb": {

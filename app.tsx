@@ -1,14 +1,38 @@
-import { useEffect, useRef, type ComponentType } from "react";
+import { useEffect, useRef } from "react";
 import {
   definePluginApp,
+  experimental_useProviders,
   experimental_useSidebarThreads,
 } from "@get-bb/plugin-sdk/app";
-import { providerLabel, providerMarkSpec, providerMarkSvg } from "./lib/provider-marks";
+import {
+  isCanvasDark,
+  providerLabel,
+  providerMarkSvg,
+  resolveMarkColor,
+  resolveMarkFilter,
+  type ProviderIconTint,
+} from "./lib/provider-marks";
 
 const ICON_SIZE = 14;
 
-function injectProviderIcons(threads: readonly { id: string; providerId: string }[]) {
+type ProviderTintSource = {
+  id: string;
+  strings?: { iconTint?: ProviderIconTint };
+};
+
+function providerTint(
+  providers: readonly ProviderTintSource[],
+  providerId: string,
+): ProviderIconTint | undefined {
+  return providers.find((provider) => provider.id === providerId)?.strings?.iconTint;
+}
+
+function injectProviderIcons(
+  threads: readonly { id: string; providerId: string }[],
+  providers: readonly ProviderTintSource[],
+) {
   const byId = new Map(threads.map((thread) => [thread.id, thread.providerId]));
+  const dark = isCanvasDark();
   for (const target of Array.from(document.querySelectorAll("[data-sidebar-thread-id]"))) {
     const id = target.getAttribute("data-sidebar-thread-id");
     if (!id) continue;
@@ -38,11 +62,11 @@ function injectProviderIcons(threads: readonly { id: string; providerId: string 
     }
 
     const label = providerLabel(providerId);
+    const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark);
+    icon.style.color = color;
+    icon.style.filter = resolveMarkFilter(providerId, dark);
     if (icon.dataset.threadProvider !== providerId) {
       icon.dataset.threadProvider = providerId;
-      // Host-owned color classes, so the mark matches the provider picker in
-      // both themes.
-      icon.className = providerMarkSpec(providerId).colorClass;
       icon.innerHTML = providerMarkSvg(providerId, ICON_SIZE);
     }
     if (icon.title !== label) icon.title = label;
@@ -51,27 +75,42 @@ function injectProviderIcons(threads: readonly { id: string; providerId: string 
 
 function SidebarProviderIcons() {
   const { threads } = experimental_useSidebarThreads();
+  const { providers } = experimental_useProviders();
   const threadsRef = useRef(threads);
+  const providersRef = useRef(providers as readonly ProviderTintSource[]);
   threadsRef.current = threads;
-  const signature = threads.map((thread) => `${thread.id}:${thread.providerId}`).join(",");
+  providersRef.current = providers as readonly ProviderTintSource[];
+  const signature = [
+    threads.map((thread) => `${thread.id}:${thread.providerId}`).join(","),
+    (providers as readonly ProviderTintSource[])
+      .map((provider) => {
+        const tint = provider.strings?.iconTint;
+        return `${provider.id}:${tint?.light ?? ""}:${tint?.dark ?? ""}`;
+      })
+      .join(","),
+  ].join("|");
 
   useEffect(() => {
     let frame = 0;
     let disposed = false;
-    const options: MutationObserverInit = { childList: true, subtree: true };
+    const options: MutationObserverInit = {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    };
 
-    // injectProviderIcons writes into document.body, which is the same subtree we
-    // observe — staying connected across our own writes re-triggers this callback
-    // forever and wedges the main thread. Detach while writing, and coalesce on a
-    // frame so a burst of sidebar updates yields to the event loop.
+    // injectProviderIcons writes into the observed tree. Detach while writing
+    // and coalesce on a frame so a burst of sidebar updates yields to the event
+    // loop; otherwise the observer re-triggers itself forever.
     const apply = () => {
       frame = 0;
       if (disposed) return;
       observer.disconnect();
       try {
-        injectProviderIcons(threadsRef.current);
+        injectProviderIcons(threadsRef.current, providersRef.current);
       } finally {
-        if (!disposed) observer.observe(document.body, options);
+        if (!disposed) observer.observe(document.documentElement, options);
       }
     };
 
@@ -82,7 +121,7 @@ function SidebarProviderIcons() {
 
     const observer = new MutationObserver(schedule);
     schedule();
-    observer.observe(document.body, options);
+    observer.observe(document.documentElement, options);
 
     return () => {
       disposed = true;
@@ -94,20 +133,11 @@ function SidebarProviderIcons() {
 }
 
 export default definePluginApp((app) => {
-  app.slots.experimental_threadList({
+  // Overlay, not experimental_threadList: the list slot is exclusive, and in
+  // bb 0.42 experimental_Original is a no-props shim. Rendering it crashes the
+  // replacement, bb falls back to the native list, and the injector unmounts.
+  app.slots.experimental_appOverlay({
     id: "thread-provider-icons",
-    title: "Threads",
-    description: "Built-in list with provider icons before titles.",
-    component: (props) => {
-      // The SDK types experimental_Original as a bare ComponentType; it does
-      // accept the slot props at runtime.
-      const Original = props.experimental_Original as ComponentType<typeof props>;
-      return (
-        <>
-          <SidebarProviderIcons />
-          <Original {...props} />
-        </>
-      );
-    },
+    component: SidebarProviderIcons,
   });
 });
