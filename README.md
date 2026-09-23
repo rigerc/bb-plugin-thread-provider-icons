@@ -11,7 +11,7 @@ tell at a glance who owns which thread.
 
 ## What it does
 
-- One 14px provider mark per sidebar row, inserted before the title.
+- One 14px provider mark per sidebar row, inserted before the title with 4px of right padding.
 - Brand colours from each provider's `strings.iconTint`, applied as inline
   `color` (plugin Tailwind is scoped to `[data-bb-plugin=…]` and never reaches
   injected sidebar DOM). Codex / Grok fall back to `var(--ink)`. Cursor is a

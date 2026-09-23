@@ -14,6 +14,7 @@ import {
 } from "./lib/provider-marks";
 
 const ICON_SIZE = 14;
+const ICON_RIGHT_PADDING = 4;
 
 type ProviderTintSource = {
   id: string;
@@ -57,7 +58,7 @@ function injectProviderIcons(
     if (!icon) {
       icon = document.createElement("span");
       icon.dataset.threadProviderIcon = "1";
-      icon.style.cssText = `display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:${ICON_SIZE}px;height:${ICON_SIZE}px`;
+      icon.style.cssText = `display:inline-flex;align-items:center;justify-content:flex-start;flex:0 0 auto;box-sizing:border-box;width:${ICON_SIZE + ICON_RIGHT_PADDING}px;height:${ICON_SIZE}px;padding-right:${ICON_RIGHT_PADDING}px`;
       container.insertBefore(icon, container.firstChild);
     }
 
@@ -127,6 +128,7 @@ function SidebarProviderIcons() {
       disposed = true;
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
+      document.querySelectorAll("[data-thread-provider-icon]").forEach((icon) => icon.remove());
     };
   }, [signature]);
   return null;
