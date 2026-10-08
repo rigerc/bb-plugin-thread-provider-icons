@@ -3,17 +3,20 @@ import {
   definePluginApp,
   experimental_useProviders,
   experimental_useSidebarThreads,
+  useBbContext,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
 import {
   isCanvasDark,
   normalizeIconColorMode,
+  normalizeSelectedIconColorMode,
   providerLabel,
   providerMarkSvg,
   resolveMarkColor,
   resolveMarkFilter,
   type IconColorMode,
   type ProviderIconTint,
+  type SelectedIconColorMode,
 } from "./lib/provider-marks";
 
 const ICON_SIZE = 14;
@@ -45,6 +48,8 @@ function injectProviderIcons(
   mode: IconColorMode,
   leftPad: number,
   rightPad: number,
+  activeThreadId: string | null,
+  selectedMode: SelectedIconColorMode,
 ) {
   const byId = new Map(threads.map((thread) => [thread.id, thread.providerId]));
   const dark = isCanvasDark();
@@ -87,9 +92,11 @@ function injectProviderIcons(
     icon.style.paddingRight = `${rightPad}px`;
 
     const label = providerLabel(providerId);
-    const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark, mode);
+    const rowMode =
+      id === activeThreadId && selectedMode !== "match" ? selectedMode : mode;
+    const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark, rowMode);
     icon.style.color = color;
-    icon.style.filter = resolveMarkFilter(providerId, dark, mode);
+    icon.style.filter = resolveMarkFilter(providerId, dark, rowMode);
     if (icon.dataset.threadProvider !== providerId) {
       icon.dataset.threadProvider = providerId;
       icon.innerHTML = providerMarkSvg(providerId, ICON_SIZE);
@@ -102,21 +109,26 @@ function SidebarProviderIcons() {
   const { threads } = experimental_useSidebarThreads();
   const { providers } = experimental_useProviders();
   const { values } = useSettings();
+  const { threadId: activeThreadId } = useBbContext();
   const mode = normalizeIconColorMode(values?.iconColor);
+  const selectedMode = normalizeSelectedIconColorMode(values?.selectedIconColor);
   const leftPad = normalizeSpacing(values?.iconLeftSpacing, DEFAULT_LEFT_SPACING);
   const rightPad = normalizeSpacing(values?.iconRightSpacing, DEFAULT_RIGHT_SPACING);
   const threadsRef = useRef(threads);
   const providersRef = useRef(providers as readonly ProviderTintSource[]);
   const modeRef = useRef(mode);
+  const selectedRef = useRef({ activeThreadId, selectedMode });
   const spacingRef = useRef({ leftPad, rightPad });
   threadsRef.current = threads;
   providersRef.current = providers as readonly ProviderTintSource[];
   modeRef.current = mode;
+  selectedRef.current = { activeThreadId, selectedMode };
   spacingRef.current = { leftPad, rightPad };
   const signature = [
     threads.map((thread) => `${thread.id}:${thread.providerId}`).join(","),
     mode,
     `${leftPad}:${rightPad}`,
+    `${activeThreadId ?? ""}:${selectedMode}`,
     (providers as readonly ProviderTintSource[])
       .map((provider) => {
         const tint = provider.strings?.iconTint;
@@ -144,12 +156,15 @@ function SidebarProviderIcons() {
       observer.disconnect();
       try {
         const spacing = spacingRef.current;
+        const selected = selectedRef.current;
         injectProviderIcons(
           threadsRef.current,
           providersRef.current,
           modeRef.current,
           spacing.leftPad,
           spacing.rightPad,
+          selected.activeThreadId,
+          selected.selectedMode,
         );
       } finally {
         if (!disposed) observer.observe(document.documentElement, options);

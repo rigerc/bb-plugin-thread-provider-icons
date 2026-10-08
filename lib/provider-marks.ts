@@ -166,6 +166,15 @@ export function normalizeIconColorMode(value: unknown): IconColorMode {
     : "brand";
 }
 
+/** Tint for the currently open thread; `match` follows the base icon mode. */
+export type SelectedIconColorMode = IconColorMode | "match";
+
+export function normalizeSelectedIconColorMode(value: unknown): SelectedIconColorMode {
+  return value === "brand" || value === "monochrome" || value === "accent" || value === "theme"
+    ? value
+    : "match";
+}
+
 /**
  * Single-tone colors for the non-brand modes. All are theme-aware CSS vars
  * so no luminance check or invert filter is needed:

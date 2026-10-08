@@ -28,8 +28,10 @@ tell at a glance who owns which thread.
   (`var(--primary)`), and `theme` follows the sidebar text color (`var(--ink)`).
   Non-brand modes skip the Cursor dark-canvas `invert(1)` because the theme
   tokens already adapt. **Left spacing** (default `0`) and **Right spacing**
-  (default `4`) control the pixels around the 14px mark. No background work,
-  no network calls, no storage.
+  (default `4`) control the pixels around the 14px mark. **Selected thread
+  color** (default `match`) recolors the mark on the currently open thread —
+  `match` follows Icon color, otherwise pick `brand`, `monochrome`, `accent`,
+  or `theme`. No background work, no network calls, no storage.
 
 ## Install
 
@@ -50,7 +52,8 @@ bb plugin install . --yes
 
 The icons appear immediately using each provider's brand color with 4px of
 right spacing — open the plugin's settings to switch **Icon color** to
-`monochrome`, `accent`, or `theme`, or to adjust the **Left/Right spacing**.
+`monochrome`, `accent`, or `theme`, give the open thread its own
+**Selected thread color**, or adjust the **Left/Right spacing**.
 There is no panel to open beyond that.
 
 ## How it works

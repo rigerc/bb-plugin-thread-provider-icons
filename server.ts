@@ -27,6 +27,14 @@ export default async function plugin(bb: BbPluginApi) {
         "Pixels of space between the provider mark and the thread title (0-32).",
       default: 4,
     },
+    selectedIconColor: {
+      type: "select",
+      label: "Selected thread color",
+      description:
+        "Color of the provider mark on the currently open thread. Match follows the Icon color setting.",
+      options: ["match", "brand", "monochrome", "accent", "theme"],
+      default: "match",
+    },
   });
   bb.log.info("loaded — sidebar provider marks are drawn by the app bundle");
 }
