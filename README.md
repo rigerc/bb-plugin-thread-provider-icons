@@ -11,7 +11,8 @@ tell at a glance who owns which thread.
 
 ## What it does
 
-- One 14px provider mark per sidebar row, inserted before the title with 4px of right padding.
+- One 14px provider mark per sidebar row, inserted before the title (default
+  0px left / 4px right spacing, adjustable in settings).
 - Brand colours from each provider's `strings.iconTint`, applied as inline
   `color` (plugin Tailwind is scoped to `[data-bb-plugin=…]` and never reaches
   injected sidebar DOM). Codex / Grok fall back to `var(--ink)`. Cursor is a
@@ -21,12 +22,14 @@ tell at a glance who owns which thread.
 - Any unknown `acp-*` agent falls back to the generic ACP mark and is labelled
   from its provider id, so new agents still get a sensible icon.
 - Hover tooltip naming the provider.
-- One setting — **Icon color** (`brand` default): `brand` keeps each
+- One setting group — **Icon color** (`brand` default): `brand` keeps each
   provider's own color, `monochrome` uses a single muted tone
   (`var(--muted-foreground, var(--ink))`), `accent` uses BB's accent color
   (`var(--primary)`), and `theme` follows the sidebar text color (`var(--ink)`).
   Non-brand modes skip the Cursor dark-canvas `invert(1)` because the theme
-  tokens already adapt. No background work, no network calls, no storage.
+  tokens already adapt. **Left spacing** (default `0`) and **Right spacing**
+  (default `4`) control the pixels around the 14px mark. No background work,
+  no network calls, no storage.
 
 ## Install
 
@@ -45,9 +48,10 @@ npm install --include=dev
 bb plugin install . --yes
 ```
 
-The icons appear immediately using each provider's brand color — open the
-plugin's settings to switch **Icon color** to `monochrome`, `accent`, or
-`theme`. There is no panel to open beyond that.
+The icons appear immediately using each provider's brand color with 4px of
+right spacing — open the plugin's settings to switch **Icon color** to
+`monochrome`, `accent`, or `theme`, or to adjust the **Left/Right spacing**.
+There is no panel to open beyond that.
 
 ## How it works
 

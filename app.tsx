@@ -17,7 +17,15 @@ import {
 } from "./lib/provider-marks";
 
 const ICON_SIZE = 14;
-const ICON_RIGHT_PADDING = 4;
+const DEFAULT_LEFT_SPACING = 0;
+const DEFAULT_RIGHT_SPACING = 4;
+const MAX_SPACING = 32;
+
+function normalizeSpacing(value: unknown, fallback: number): number {
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.min(MAX_SPACING, Math.max(0, Math.round(num)));
+}
 
 type ProviderTintSource = {
   id: string;
@@ -35,6 +43,8 @@ function injectProviderIcons(
   threads: readonly { id: string; providerId: string }[],
   providers: readonly ProviderTintSource[],
   mode: IconColorMode,
+  leftPad: number,
+  rightPad: number,
 ) {
   const byId = new Map(threads.map((thread) => [thread.id, thread.providerId]));
   const dark = isCanvasDark();
@@ -62,9 +72,19 @@ function injectProviderIcons(
     if (!icon) {
       icon = document.createElement("span");
       icon.dataset.threadProviderIcon = "1";
-      icon.style.cssText = `display:inline-flex;align-items:center;justify-content:flex-start;flex:0 0 auto;box-sizing:border-box;width:${ICON_SIZE + ICON_RIGHT_PADDING}px;height:${ICON_SIZE}px;padding-right:${ICON_RIGHT_PADDING}px`;
+      icon.style.display = "inline-flex";
+      icon.style.alignItems = "center";
+      icon.style.justifyContent = "flex-start";
+      icon.style.flex = "0 0 auto";
+      icon.style.boxSizing = "border-box";
+      icon.style.height = `${ICON_SIZE}px`;
       container.insertBefore(icon, container.firstChild);
     }
+    // Box metrics are reapplied every pass so spacing setting changes
+    // update live rows without waiting for a row re-render.
+    icon.style.width = `${ICON_SIZE + leftPad + rightPad}px`;
+    icon.style.paddingLeft = `${leftPad}px`;
+    icon.style.paddingRight = `${rightPad}px`;
 
     const label = providerLabel(providerId);
     const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark, mode);
@@ -83,15 +103,20 @@ function SidebarProviderIcons() {
   const { providers } = experimental_useProviders();
   const { values } = useSettings();
   const mode = normalizeIconColorMode(values?.iconColor);
+  const leftPad = normalizeSpacing(values?.iconLeftSpacing, DEFAULT_LEFT_SPACING);
+  const rightPad = normalizeSpacing(values?.iconRightSpacing, DEFAULT_RIGHT_SPACING);
   const threadsRef = useRef(threads);
   const providersRef = useRef(providers as readonly ProviderTintSource[]);
   const modeRef = useRef(mode);
+  const spacingRef = useRef({ leftPad, rightPad });
   threadsRef.current = threads;
   providersRef.current = providers as readonly ProviderTintSource[];
   modeRef.current = mode;
+  spacingRef.current = { leftPad, rightPad };
   const signature = [
     threads.map((thread) => `${thread.id}:${thread.providerId}`).join(","),
     mode,
+    `${leftPad}:${rightPad}`,
     (providers as readonly ProviderTintSource[])
       .map((provider) => {
         const tint = provider.strings?.iconTint;
@@ -118,7 +143,14 @@ function SidebarProviderIcons() {
       if (disposed) return;
       observer.disconnect();
       try {
-        injectProviderIcons(threadsRef.current, providersRef.current, modeRef.current);
+        const spacing = spacingRef.current;
+        injectProviderIcons(
+          threadsRef.current,
+          providersRef.current,
+          modeRef.current,
+          spacing.leftPad,
+          spacing.rightPad,
+        );
       } finally {
         if (!disposed) observer.observe(document.documentElement, options);
       }

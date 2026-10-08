@@ -14,6 +14,19 @@ export default async function plugin(bb: BbPluginApi) {
       options: ["brand", "monochrome", "accent", "theme"],
       default: "brand",
     },
+    iconLeftSpacing: {
+      type: "number",
+      label: "Left spacing",
+      description: "Pixels of space before the provider mark (0-32).",
+      default: 0,
+    },
+    iconRightSpacing: {
+      type: "number",
+      label: "Right spacing",
+      description:
+        "Pixels of space between the provider mark and the thread title (0-32).",
+      default: 4,
+    },
   });
   bb.log.info("loaded — sidebar provider marks are drawn by the app bundle");
 }
