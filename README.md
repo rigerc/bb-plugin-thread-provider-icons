@@ -21,7 +21,12 @@ tell at a glance who owns which thread.
 - Any unknown `acp-*` agent falls back to the generic ACP mark and is labelled
   from its provider id, so new agents still get a sensible icon.
 - Hover tooltip naming the provider.
-- Nothing else. No settings, no background work, no network calls, no storage.
+- One setting — **Icon color** (`brand` default): `brand` keeps each
+  provider's own color, `monochrome` uses a single muted tone
+  (`var(--muted-foreground, var(--ink))`), `accent` uses BB's accent color
+  (`var(--primary)`), and `theme` follows the sidebar text color (`var(--ink)`).
+  Non-brand modes skip the Cursor dark-canvas `invert(1)` because the theme
+  tokens already adapt. No background work, no network calls, no storage.
 
 ## Install
 
@@ -40,8 +45,9 @@ npm install --include=dev
 bb plugin install . --yes
 ```
 
-The icons appear immediately — there is no panel to open and nothing to
-configure.
+The icons appear immediately using each provider's brand color — open the
+plugin's settings to switch **Icon color** to `monochrome`, `accent`, or
+`theme`. There is no panel to open beyond that.
 
 ## How it works
 

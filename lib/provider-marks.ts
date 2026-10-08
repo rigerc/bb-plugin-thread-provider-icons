@@ -157,12 +157,36 @@ function cssLuminance(css: string): number | null {
   return null;
 }
 
+/** Icon tint mode from the `iconColor` plugin setting. */
+export type IconColorMode = "brand" | "monochrome" | "accent" | "theme";
+
+export function normalizeIconColorMode(value: unknown): IconColorMode {
+  return value === "monochrome" || value === "accent" || value === "theme"
+    ? value
+    : "brand";
+}
+
+/**
+ * Single-tone colors for the non-brand modes. All are theme-aware CSS vars
+ * so no luminance check or invert filter is needed:
+ * - monochrome: muted sidebar tone, same in light and dark.
+ * - accent: BB's accent (`--primary`).
+ * - theme: sidebar text color (`--ink`, the same token Codex/Grok use).
+ */
+export const ICON_COLORS: Record<Exclude<IconColorMode, "brand">, string> = {
+  monochrome: "var(--muted-foreground, var(--ink))",
+  accent: "var(--primary)",
+  theme: "var(--ink)",
+};
+
 /** Prefer the live provider `strings.iconTint`; otherwise the vendored fallback. */
 export function resolveMarkColor(
   providerId: string | undefined,
   tint: ProviderIconTint | undefined,
   dark = isCanvasDark(),
+  mode: IconColorMode = "brand",
 ): string {
+  if (mode !== "brand") return ICON_COLORS[mode];
   const spec = providerMarkSpec(providerId);
   if (spec.invertOnDark) return spec.color;
   if (tint?.light && tint?.dark) return dark ? tint.dark : tint.light;
@@ -172,7 +196,10 @@ export function resolveMarkColor(
 export function resolveMarkFilter(
   providerId: string | undefined,
   dark = isCanvasDark(),
+  mode: IconColorMode = "brand",
 ): string {
+  // Single-tone modes use theme-aware vars, so never invert.
+  if (mode !== "brand") return "none";
   return providerMarkSpec(providerId).invertOnDark && dark ? "invert(1)" : "none";
 }
 

@@ -3,13 +3,16 @@ import {
   definePluginApp,
   experimental_useProviders,
   experimental_useSidebarThreads,
+  useSettings,
 } from "@get-bb/plugin-sdk/app";
 import {
   isCanvasDark,
+  normalizeIconColorMode,
   providerLabel,
   providerMarkSvg,
   resolveMarkColor,
   resolveMarkFilter,
+  type IconColorMode,
   type ProviderIconTint,
 } from "./lib/provider-marks";
 
@@ -31,6 +34,7 @@ function providerTint(
 function injectProviderIcons(
   threads: readonly { id: string; providerId: string }[],
   providers: readonly ProviderTintSource[],
+  mode: IconColorMode,
 ) {
   const byId = new Map(threads.map((thread) => [thread.id, thread.providerId]));
   const dark = isCanvasDark();
@@ -63,9 +67,9 @@ function injectProviderIcons(
     }
 
     const label = providerLabel(providerId);
-    const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark);
+    const color = resolveMarkColor(providerId, providerTint(providers, providerId), dark, mode);
     icon.style.color = color;
-    icon.style.filter = resolveMarkFilter(providerId, dark);
+    icon.style.filter = resolveMarkFilter(providerId, dark, mode);
     if (icon.dataset.threadProvider !== providerId) {
       icon.dataset.threadProvider = providerId;
       icon.innerHTML = providerMarkSvg(providerId, ICON_SIZE);
@@ -77,12 +81,17 @@ function injectProviderIcons(
 function SidebarProviderIcons() {
   const { threads } = experimental_useSidebarThreads();
   const { providers } = experimental_useProviders();
+  const { values } = useSettings();
+  const mode = normalizeIconColorMode(values?.iconColor);
   const threadsRef = useRef(threads);
   const providersRef = useRef(providers as readonly ProviderTintSource[]);
+  const modeRef = useRef(mode);
   threadsRef.current = threads;
   providersRef.current = providers as readonly ProviderTintSource[];
+  modeRef.current = mode;
   const signature = [
     threads.map((thread) => `${thread.id}:${thread.providerId}`).join(","),
+    mode,
     (providers as readonly ProviderTintSource[])
       .map((provider) => {
         const tint = provider.strings?.iconTint;
@@ -109,7 +118,7 @@ function SidebarProviderIcons() {
       if (disposed) return;
       observer.disconnect();
       try {
-        injectProviderIcons(threadsRef.current, providersRef.current);
+        injectProviderIcons(threadsRef.current, providersRef.current, modeRef.current);
       } finally {
         if (!disposed) observer.observe(document.documentElement, options);
       }
